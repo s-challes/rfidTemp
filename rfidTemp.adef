@@ -1,0 +1,16 @@
+sandboxed: true
+start: manual
+version: 1.0
+
+executables:
+{
+	rfidTemp = ( rfidComp )
+}
+processes:
+{
+	run:
+	{
+		(rfidTemp)
+	}
+
+}
