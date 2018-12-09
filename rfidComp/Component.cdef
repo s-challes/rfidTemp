@@ -2,3 +2,10 @@ sources:
 {
 	rfid.c
 }
+requires:
+{
+	dir:
+	{
+		/mnt/userrw/sdcard	/
+	}
+}

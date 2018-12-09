@@ -35,7 +35,6 @@ COMPONENT_INIT
 	time_t     now;
     struct tm  ts;
     
-
     // Get current time
     time(&now);
 
@@ -43,32 +42,29 @@ COMPONENT_INIT
     ts = *localtime(&now);
     strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
 	
-	//int fd = le_atomFile_TryCreate("./myfile.txt", LE_FLOCK_READ_AND_APPEND, LE_FLOCK_OPEN_IF_EXIST, O_RDWR);
-	int fd = open("./myfile.txt", O_CREAT | O_APPEND | O_RDWR);
+	FILE* fd = fopen ("sdcard/myfile.txt", "a");
 	//GetCurrentTimestamp(timestamp);
 	
-	if (fd < 0)
+	if (fd == NULL)
 	{
 		// Print error message and exit.
 		LE_INFO("file could not be opened");
 	}
 	else{
-	 
 		// Write something in fd
-		char myString[] = " rfid test\n";
+		fprintf(fd, "%s %s", buf, " rfid test data\n");
+		
+
 		 
 		// Now write this string to fd
-		write(fd, buf, (sizeof(buf)-1));
-		write(fd, myString, (sizeof(myString)-1));    // This string write doesn't go disk
-		
-		//printf("%s\n", buf);
-		 
-		le_result_t result = close(fd); // Transfers all changes to disk
-		 
-		if (result == LE_OK)
+		if (fclose(fd) == 0)
 		{
 			// Print success message
 			LE_INFO("Data successfuly written");
+		}
+		else
+		{
+			LE_INFO("Error closing file");
 		}
 	}
 	

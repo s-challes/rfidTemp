@@ -1,2 +1,168 @@
-This is rfidTemp Readme file
-branch test
+**********************************************************************
+*							   RFIDTEMP								 *
+*	 				Test app for opening and saving					 *
+*				   time-stamped temperature data to					 *
+*			  				 MicroSD card							 *
+*																	 *
+*			 				For MangOH Red							 *
+**********************************************************************
+---------------------------Work in Progress----------------------------
+
+When run, this app adds one line of timestamped data to a file named "myfile.txt"
+saved on the sd card that is mounted at "/mnt/userrw/sdcard". After closing the
+file, the program exits with code "0".
+
+Instructions for setting up the MicroSd are a little complicated, so they are
+included below.
+
+type of card used: SanDisk 16GB microSDHC UHS-I Card (SDSQUAR-016G-CN6MA)
+
+1. Format SD card in windows to FAT32
+
+2. ensure that you have the following apps installed and running on your mangOH red:
+   
+		muxCtrlService
+		muxCtrlTools
+		gpioService
+		
+3. if these apps are not installed, they can be built by typing the following 
+commands in the terminal:
+	(for muxCtrlService)
+	$ cd ~/mangOH/apps/MuxControl/muxCtrlService
+	$ mkapp -t wp85 muxCtrlService.adef
+	$ app install muxCtrlService.wp85.update 192.168.2.2
+	
+	(for muxCtrlTools)
+	$cd ~/mangOH/apps/MuxControl/tools
+	$ mkapp -t wp85 muxCtrlTools.adef
+	$ app install muxCtrlTools.wp85.update 192.168.2.2
+	
+	you may get an error, stating that mangoh_muxCtrl.api cannot be found
+	if this is the case change Component.cdef in the directory
+	"~/mangOH/apps/MuxControl/tools/mux" to:
+	
+		requires:
+		{	
+			api:
+			{
+				/home/mangoh/mangOH/apps/MuxControl/mangoh_muxCtrl.api [manual-start] 
+			}
+		}
+
+		cflags:
+		{
+			"-std=c99"
+		}
+
+		sources:
+		{
+			muxCtrl.c
+		}
+		
+		and retry the above steps.
+
+	On my mangOH red, gpioService was already running, and didn't need to be installed.
+
+4. ssh into mangOH red (root@192.168.2.2) and  type the following to allow the wp85 to 
+see the MicroSD card:
+
+	# microcom -t 10000 /dev/ttyAT
+		(this allows you to enter AT commands, but there is no echo, so you will not see
+		what you are typing. it will also timout after 10 seconds of inactivity)
+	Then type:
+	mux 9
+	
+	after microcom times out, type in:
+	# dmesg | grep mmc
+	
+	which will spit out some lines with something like the following at the bottom:
+	
+	mmc0: new highspeed SDHC card at address aaaa
+	mmcblk0: mmc0:aaaa SC16G 14.8 GiB
+	mmcblk0: p1
+
+5. check to make sure that the SD card is listed under /dev/
+
+	# cd /dev
+	# ls
+	(this will print out all devices available, scroll up until you see mmcblk0p1)
+	
+	if you don't see mmcblk0p1 something has gone horribly horribly wrong
+	
+6. make the directory for the sdcard to be mounted to:
+	
+	# mkdir -p /mnt/userrw/sdcard
+	
+	then you have two choices (the second option is better)
+	
+	
+	6a. (option 1) temporarily mount sd card (mounting will disappear on power loss)
+	
+		# /bin/mount -t auto -o sync /dev/mmcblk0p1 "/mnt/userrw/sdcard"
+	
+	
+	6b. (option 2) set up /etc/fstab to mount the sdcard on boot
+	
+		# blkid
+			(this should print out something like the following:)
+			
+		/dev/mmcblk0p1: UUID="XXXX-XXXX" TYPE="vfat"  <--take note of this info
+		/dev/ubiblock1_0: TYPE="squashfs"
+		/dev/ubiblock0_0: TYPE="squashfs"
+		
+		now you have to insert the following line in /etc/fstab
+		
+		UUID=XXXX-XXXX /mnt/userrw/sdcard vfat defaults 0 0
+		(note: your UUID and Type (vfat) will be what came up when you typed blkid)
+		
+		I accomplished the edit by browsing to /etc/ and using busybox vi
+		
+		/# cd /etc
+		/etc# busybox vi fstab
+		
+		(be very careful not to change the first two lines, or you might brick your
+		mangOH red!!!!)
+		once busybox opens the file:
+		-press a to append
+		-type in the new line
+		-hit esc
+		-type ZZ (this should save and exit)
+		
+		 a handy guide to using busybox vi can be found here:
+		 http://k.japko.eu/busybox-vi-tutorial.html
+		 
+		 now test to see if it worked by typing:
+		 
+		 #mount -a
+		 
+		 (if you get an error, something went wrong and you should either correct the
+		 mistake, or delete the line you added before a system reboot. it might not mount
+		 the file system right and fail on reboot)
+
+you should now be able to acess the sd card from your apps.
+		
+Two things make sure of when trying to write to the sd card are the following:
+ 1) ensure the following is in your Component.cdef file of the app:
+		requires:
+		{
+			dir:
+			{
+				/mnt/userrw/sdcard	/
+			}
+		}
+ 
+ 2) the following commands work well for writting (note the path in fprintf)
+ 
+		FILE* fd = fopen ("sdcard/myfile.txt", "a");
+		fprintf(fd, "%s %s %s %d", "We", "are", "in", 2018);
+		fclose(fd);
+ 
+
+		
+		
+		
+		
+		
+		
+		
+		
