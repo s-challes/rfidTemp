@@ -1,4 +1,4 @@
-sandboxed: true
+sandboxed: false
 start: manual
 version: 1.0
 

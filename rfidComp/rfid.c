@@ -42,7 +42,7 @@ COMPONENT_INIT
     ts = *localtime(&now);
     strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
 	
-	FILE* fd = fopen ("sdcard/myfile.txt", "a");
+	FILE* fd = fopen ("sdcard/log.txt", "a");
 	//GetCurrentTimestamp(timestamp);
 	
 	if (fd == NULL)
