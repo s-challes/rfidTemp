@@ -1,3 +1,11 @@
+/*
+ * rfidTemp 
+ * logs a timestamp with dummy data onto log.txt every 15 seconds
+ *
+ * Challes Product Development
+ * 18/12/09
+ */
+ 
 #include "legato.h"
 #include "interfaces.h"
 #include "le_tty.h"
@@ -8,28 +16,21 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-//static void GetCurrentTimestamp(char *buf);
 
-//static void GetCurrentTimestamp(char *buf)
-/*{
-    time_t     now;
-    struct tm  ts;
-    
+#define RFID_SAMPLE_INTERVAL_IN_MILLISECONDS (15000)
 
-    // Get current time
-    time(&now);
 
-    // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
-    ts = *localtime(&now);
-    strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
-    
 
-}*/
+//--------------------------------------------------------------------------------------------------
+/*
+ * rfidTmer runs every 15 seconds when called as rfidTmerRef handler
+ */
+//--------------------------------------------------------------------------------------------------
 
-COMPONENT_INIT
+static void rfidTimer(le_timer_Ref_t rfidTimerRef)
 {
-	//char timestamp[80] = {};
-	char buf[28] = {0};
+    //char timestamp[80] = {};
+	char timestamp[28] = {0};
 	// Atomic write example, File Descriptor case.
 	
 	time_t     now;
@@ -40,7 +41,7 @@ COMPONENT_INIT
 
     // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
     ts = *localtime(&now);
-    strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
+    strftime(timestamp, sizeof(timestamp), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
 	
 	FILE* fd = fopen ("sdcard/log.txt", "a");
 	//GetCurrentTimestamp(timestamp);
@@ -52,7 +53,7 @@ COMPONENT_INIT
 	}
 	else{
 		// Write something in fd
-		fprintf(fd, "%s %s", buf, " rfid test data\n");
+		fprintf(fd, "%s %s", timestamp, " rfid test data\n");
 		
 
 		 
@@ -67,6 +68,23 @@ COMPONENT_INIT
 			LE_INFO("Error closing file");
 		}
 	}
+}
+
+//--------------------------------------------------------------------------------------------------
+/*
+ * Main program starts here
+ */
+//--------------------------------------------------------------------------------------------------
+
+COMPONENT_INIT
+{
+	LE_INFO("rfidTemp application has started");
 	
-	exit(0);
+	le_timer_Ref_t rfidTimerRef = le_timer_Create("rfid Timer");
+    le_timer_SetMsInterval(rfidTimerRef, RFID_SAMPLE_INTERVAL_IN_MILLISECONDS);
+    le_timer_SetRepeat(rfidTimerRef, 0);
+
+    le_timer_SetHandler(rfidTimerRef,rfidTimer);
+    le_timer_Start(rfidTimerRef);
+	
 }
