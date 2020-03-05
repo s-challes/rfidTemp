@@ -20,6 +20,7 @@
 #define RFID_SAMPLE_INTERVAL_IN_MILLISECONDS (15000)
 
 int static open_port(void);
+static uint64_t GetCurrentTimestamp(void);
 void getTimestamp(char *timestamp);
 void rfidWrite(int port, char *command, char size);
 void rfidRead(int port, char *buffer, int size);
@@ -54,6 +55,27 @@ int static open_port(void)
 	}
   return (port);
 }
+
+
+
+//--------------------------------------------------------------------------------------------------
+
+/**
+ * Convenience function to get current time as uint64_t.
+ *
+ * @return
+ *      Current time as a uint64_t
+ */
+//--------------------------------------------------------------------------------------------------
+
+static uint64_t GetCurrentTimestamp(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t utcMilliSec = (uint64_t)(tv.tv_sec) * 1000 + (uint64_t)(tv.tv_usec) / 1000;
+    return utcMilliSec;
+}
+
 
 //--------------------------------------------------------------------------------------------------
 /*
@@ -135,8 +157,10 @@ static void rfidTimer(le_timer_Ref_t rfidTimerRef)
     char buffer[64] = {0};
     
 	//get Timestamp
-	char timestamp[28] = {0};
-	getTimestamp(timestamp);
+	//char timestamp[28] = {0};
+	
+	//getTimestamp(timestamp);
+	uint64_t tnow = GetCurrentTimestamp();
 	
 	//open port to rfid
 	int port = open_port();
@@ -202,7 +226,7 @@ static void rfidTimer(le_timer_Ref_t rfidTimerRef)
 	le_tty_Close(port);
 	
 	//GetCurrentTimestamp(timestamp);	
-	FILE* fd = fopen ("sdcard/log.txt", "a");
+	FILE* fd = fopen ("sdcard/rfidLog.txt", "a");
 
 	if (fd == NULL)
 	{
@@ -211,7 +235,7 @@ static void rfidTimer(le_timer_Ref_t rfidTimerRef)
 	}
 	else{
 		// Write something in fd
-		fprintf(fd, "%s %s%c%c\n", timestamp, "tempdata = ", temperature[0], temperature[1]);
+		fprintf(fd, "%lld\t%c%c\n", tnow, temperature[0], temperature[1]);
 		
 
 		 
@@ -237,6 +261,47 @@ static void rfidTimer(le_timer_Ref_t rfidTimerRef)
 COMPONENT_INIT
 {
 	LE_INFO("rfidTemp application has started");
+	
+	//char timestamp[80] = {0};
+	char systemCommand[300] = {0};
+	//time_t     now;
+    //struct tm  ts;
+    int systemResult;
+    
+    // Get current time
+    //time(&now);
+
+    // Format time, "yyyy-mm-dd hh:mm:ss"
+    //ts = *localtime(&now);
+    //strftime(timestamp, sizeof(timestamp), "%Y-%m-%d-%H-%M-%S", &ts);
+    // move old log file to a date stamped file name
+    //sprintf(systemCommand, "mv /mnt/userrw/sdcard/rfidLog.txt /mnt/userrw/sdcard/%s_rfidLog.txt", timestamp);
+	sprintf(systemCommand, "lastStartTime=$(cat /mnt/userrw/sdcard/lastStartTime.txt); mkdir /mnt/userrw/sdcard/\"$lastStartTime\"; mv /mnt/userrw/sdcard/rfidLog.txt /mnt/userrw/sdcard/\"$lastStartTime\"/\"$lastStartTime\"_rfidLog.txt");
+	
+    systemResult = system(systemCommand);
+    // Return value of -1 means that the fork() has failed (see man system).
+    if (0 == WEXITSTATUS(systemResult))
+    {
+        LE_INFO("Succesfully backed up rfid log file: sys> %s", systemCommand);
+    }
+    else
+    {
+        LE_ERROR("Error rfid log file backup Failed: (%d), sys> %s", systemResult, systemCommand);
+    }
+	
+	//write file header line for first row
+	FILE* fd = fopen ("sdcard/rfidLog.txt", "a");
+	fprintf(fd, "Time\tTemperature\n");
+		// Now write this string to fd
+	if (fclose(fd) == 0)
+	{
+			// Print success message
+		LE_INFO("Data successfuly written");
+	}
+	else
+	{
+		LE_INFO("Error closing file");
+	}
 	
 	le_timer_Ref_t rfidTimerRef = le_timer_Create("rfid Timer");
     le_timer_SetMsInterval(rfidTimerRef, RFID_SAMPLE_INTERVAL_IN_MILLISECONDS);
