@@ -263,10 +263,10 @@ COMPONENT_INIT
 	LE_INFO("rfidTemp application has started");
 	
 	//char timestamp[80] = {0};
-	char systemCommand[300] = {0};
+	//char systemCommand[300] = {0};
 	//time_t     now;
     //struct tm  ts;
-    int systemResult;
+    //int systemResult;
     
     // Get current time
     //time(&now);
